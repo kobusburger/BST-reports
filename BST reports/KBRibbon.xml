@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<customUI xmlns="http://schemas.microsoft.com/office/2009/07/customui" onLoad="Ribbon_Load" xmlns:KB="KBNameSpace">
+  <ribbon>
+    <tabs>
+      <!--us idQ with custom namespace to make shared tabs work-->
+      <tab idQ="KB:KBTab" label="KB">
+        <group id="BST" label="BST">
+          <button id="CombineWBS" label="Combine BST WBS reports"
+               screentip="Combine BST WBS report tables already on sheets" onAction="OnCombineWBS"/>
+          <button id="MonitorBST" label="Monitor BST"
+               screentip="Monitor and import BST Project Analysis and Project WBS reports" onAction="OnMonitorBST"/>
+          <button id="AboutButton" label="About"
+               screentip="About" onAction="OnAboutButton"/>
+        </group>
+      </tab>
+    </tabs>
+  </ribbon>
+</customUI>
+
