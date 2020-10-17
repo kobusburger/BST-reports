@@ -13,7 +13,6 @@ namespace BST_reports
             BSTMonitorForm bSTMonitorForm = new BSTMonitorForm();
             Globals.ThisAddIn.LogTrackInfo("MonitorBST");
             bSTMonitorForm.ShowDialog();
-            bSTMonitorForm.Close();
         }
 
         readonly Microsoft.ApplicationInsights.TelemetryClient tc = new Microsoft.ApplicationInsights.TelemetryClient();

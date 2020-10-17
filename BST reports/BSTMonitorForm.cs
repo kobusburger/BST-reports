@@ -13,7 +13,7 @@ namespace BST_reports
 {
     public partial class BSTMonitorForm : Form
     {
-        int FileEventCounter=0;
+        public static int FileEventCounter=0;
         public BSTMonitorForm()
         {
             InitializeComponent();
@@ -21,6 +21,14 @@ namespace BST_reports
 
         private void BSTMonitorForm_Load(object sender, EventArgs e)
         {
+            try
+            {
+                this.BSTFileWatcher.Path = Environment.ExpandEnvironmentVariables(BST.BSTPath);
+            }
+            catch (Exception ex)
+            {
+                Globals.ThisAddIn.ExMsg(ex);
+            }
         }
 
         private void BSTFileWatcher_Changed(object sender, System.IO.FileSystemEventArgs e)
@@ -39,18 +47,16 @@ namespace BST_reports
                 switch (FileName)
                 {
                     case "PrjWbs.htm":
-                        BST.ParseWBS();
+                        BST.ParseWBS(this);
 
                         FileEventCounter += 1;
                         EventCounter.Text = FileEventCounter.ToString();
-                        FileEvents.AppendText(FileEventCounter + ": WBS report added: " + "\r\n");
                         break;
                     case "PrjAnalysis.htm":
-                        BST.ParseAnalysis();
+                        BST.ParseAnalysis(this);
 
                         FileEventCounter += 1;
                         EventCounter.Text = FileEventCounter.ToString();
-                        FileEvents.AppendText(FileEventCounter + ": Analysis report added: " + "\r\n");
                         break;
                 }
            }
@@ -62,6 +68,12 @@ namespace BST_reports
         private void CloseButton_Click(object sender, EventArgs e)
         {
             this.Close();
+        }
+
+        private void BSTMonitorForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            FileEventCounter = 0;
+            this.BSTFileWatcher.EnableRaisingEvents = false; //Stop file monitoring
         }
     }
 }

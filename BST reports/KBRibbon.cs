@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Office = Microsoft.Office.Core;
 
-// TODO:  Follow these steps to enable the Ribbon (XML) item:
+// Follow these steps to enable the Ribbon (XML) item:
 
 // 1: Copy the following code block into the ThisAddin, ThisWorkbook, or ThisDocument class.
 
@@ -54,10 +54,7 @@ namespace BST_reports
         {
             this.ribbon = ribbonUI;
         }
-        public void OnArrangeButton(Office.IRibbonControl control)
-        { BST.ArrangeBSTCosts(); }
-
-        public void OnCombibeWBS(Office.IRibbonControl control)
+        public void OnCombineWBS(Office.IRibbonControl control)
         { BST.CombineWBS(); }
 
         public void OnMonitorBST(Office.IRibbonControl control)

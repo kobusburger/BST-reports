@@ -60,6 +60,7 @@
             // 
             // FileEvents
             // 
+            this.FileEvents.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.FileEvents.Location = new System.Drawing.Point(31, 59);
             this.FileEvents.Multiline = true;
             this.FileEvents.Name = "FileEvents";
@@ -115,6 +116,7 @@
             this.Controls.Add(this.CloseButton);
             this.Name = "BSTMonitorForm";
             this.Text = "BSTMonitorForm";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.BSTMonitorForm_FormClosing);
             this.Load += new System.EventHandler(this.BSTMonitorForm_Load);
             ((System.ComponentModel.ISupportInitialize)(this.BSTFileWatcher)).EndInit();
             this.ResumeLayout(false);
@@ -125,9 +127,9 @@
         #endregion
         private System.Windows.Forms.Button CloseButton;
         private System.IO.FileSystemWatcher BSTFileWatcher;
-        private System.Windows.Forms.TextBox FileEvents;
         private System.Windows.Forms.TextBox EventCounter;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.TextBox textBox1;
+        internal System.Windows.Forms.TextBox FileEvents;
     }
 }
