@@ -175,6 +175,13 @@ namespace BST_reports
         {
             Excel.Application xlAp = Globals.ThisAddIn.Application;
             Excel.Workbook XlWb = xlAp.ActiveWorkbook;
+            if (VBATrusted(XlWb) == false)
+            {
+                MessageBox.Show("No Access to VB Project\n\rPlease allow access in Trusted Sources\n\r" +
+                    "File > Options > Trust Center > Trust Center Settings > Macro Settings > Trust Access to the VBA project object model");
+                return;
+            }
+
             string[] TableNames = { "WBSTable1", "abcd1" };
             AddQuery(TableNames, XlWb);
 
@@ -196,9 +203,9 @@ namespace BST_reports
 
                 foreach (string TableName in TableNamesArray) //Return if query already exists
                 {
-                    if (ExistQuery(wbk, ConNamePrefix + TableName))
+                    if (ExistConnection(wbk, ConNamePrefix + TableName))
                     {
-                        MessageBox.Show(ConNamePrefix + TableName + " already exists");
+                        MessageBox.Show("Connection" + TableName + " already exists. Please delete existing connections");
                         return;
                     }
                 }
@@ -218,19 +225,28 @@ Sub {MacroName}()
     TableNames = Array({TableNames})
 
     For Each TableName In TableNames
+        On Error Resume Next
         ActiveWorkbook.Queries.Add _
             Name:= TableName, _
             Formula:= ""let Source = Excel.CurrentWorkbook(){{[Name="""""" & TableName & """"""]}}[Content] in Source""
+        If Err.Number = -2147024809 Then
+            MsgBox ""Query "" & TableName & "" already exists. Please delete existing queries""
+            Exit Sub
+        End If
+        On Error GoTo 0
+    Next
+End Sub
+                ";
 
-            Workbooks(""{wbkName}"").Connections.Add2 _
+/*  The creationg of a connection may not be required. It seems that a query is sufficient
+   Workbooks(""{wbkName}"").Connections.Add2 _
             Name:= ""{ConNamePrefix}"" & TableName, _
             Description:= ""Connection to the "" & TableName & "" query in the workbook."", _
             ConnectionString:= ""OLEDB;Provider=Microsoft.Mashup.OleDb.1;Data Source=$Workbook$;Location="" & TableName & "";Extended Properties="", _
             CommandText:= ""SELECT * FROM ["""" & TableName & """"]"", _
             lCmdtype:= 2
-    Next
-End Sub
-                ";
+                ";*/
+
                 codeModule.InsertLines(4, VBAcodeText);
                 wbk.Application.Run($@"{newStandardModule.Name}.{MacroName}");
 
@@ -313,6 +329,26 @@ End Sub
                         Globals.ThisAddIn.ExMsg(ex);
                     }
                 }*/
+        internal static bool VBATrusted(Excel.Workbook xlWb) //Check if VBA project object model is trusted
+        {
+            try
+            {
+                string VBProjName = xlWb.VBProject.Name;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                if ((uint)ex.HResult == 0x800a03ec)
+                {
+                    return false;
+                }
+                else
+                {
+                    Globals.ThisAddIn.ExMsg(ex);
+                    return false;
+                }
+            }
+        }
 
         //From https://stackoverflow.com/questions/61622872/adding-power-queries-to-excel-using-c-sharp
         /*        public void AddQuery(string m_script_path, string query_name, Excel.Workbook wk)
@@ -391,7 +427,7 @@ End Sub
             }
             return false;
         }
-        internal static bool ExistQuery(Excel.Workbook XlWb, string QueryName)
+        internal static bool ExistConnection(Excel.Workbook XlWb, string QueryName)
         {
             // Returns true if a query exists in the workbook
             foreach (Excel.WorkbookConnection Query in XlWb.Connections) // Loop through all the worksheets
