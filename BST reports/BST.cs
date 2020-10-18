@@ -175,10 +175,11 @@ namespace BST_reports
         {
             Excel.Application xlAp = Globals.ThisAddIn.Application;
             Excel.Workbook XlWb = xlAp.ActiveWorkbook;
-            AddQuery("WBSTable1", XlWb);
+            string[] TableNames = { "WBSTable1", "abcd1" };
+            AddQuery(TableNames, XlWb);
 
         }
-        internal static void AddQuery(string TableName, Excel.Workbook wbk)
+        internal static void AddQuery(string[] TableNamesArray, Excel.Workbook wbk) //Create queries for each table in TableNamesArray
         //https://stackoverflow.com/questions/61622872/adding-power-queries-to-excel-using-c-sharp
         //https://docs.microsoft.com/en-us/office/vba/language/reference/visual-basic-add-in-model/objects-visual-basic-add-in-model#vbcomponent
         //https://stackoverflow.com/questions/64210190/how-to-create-queries-and-connections#
@@ -186,32 +187,48 @@ namespace BST_reports
         {
             try
             {
-                string MacroName = "AddQuery";
+                string MacroName ;
                 string wbkName = wbk.Name;
-                string ConnectionName = $"Query - {TableName}";
-                if (ExistQuery(wbk, ConnectionName))
-                {
-                    MessageBox.Show(ConnectionName + " already exist");
-                    return;
-                }
+                string ConNamePrefix = "Query - ";
+                string TableNames;
                 VBComponent newStandardModule;
+                string VBAcodeText;
+
+                foreach (string TableName in TableNamesArray) //Return if query already exists
+                {
+                    if (ExistQuery(wbk, ConNamePrefix + TableName))
+                    {
+                        MessageBox.Show(ConNamePrefix + TableName + " already exists");
+                        return;
+                    }
+                }
+
+                Random RandNo = new Random();
+                MacroName = "Addquery" + RandNo.Next(100000, 1000000); //Randomize the macro name
+                TableNames = "\"" + string.Join("\",\"", TableNamesArray) + "\""; //Create string in VBA expected format
                 newStandardModule = wbk.VBProject.VBComponents.Add(Microsoft.Vbe.Interop.vbext_ComponentType.vbext_ct_StdModule);
 
                 var codeModule = newStandardModule.CodeModule;
 
                 // add vba code to module
-                string VBAcodeText = $@"
+                VBAcodeText = $@"
 Sub {MacroName}()
-    ActiveWorkbook.Queries.Add _
-        Name:= ""{TableName}"", _
-        Formula:= ""let Source = Excel.CurrentWorkbook(){{[Name=""""{TableName}""""]}}[Content] in Source""
+    Dim TableName As Variant
+    Dim TableNames() As Variant
+    TableNames = Array({TableNames})
 
-        Workbooks(""{wbkName}"").Connections.Add2 _
-        Name:= ""{ConnectionName}"", _
-        Description:= ""Connection to the '{TableName}' query in the workbook."", _
-        ConnectionString:= ""OLEDB;Provider=Microsoft.Mashup.OleDb.1;Data Source=$Workbook$;Location={TableName};Extended Properties="", _
-        CommandText:= ""SELECT * FROM [{TableName}]"", _
-        lCmdtype:= 2
+    For Each TableName In TableNames
+        ActiveWorkbook.Queries.Add _
+            Name:= TableName, _
+            Formula:= ""let Source = Excel.CurrentWorkbook(){{[Name="""""" & TableName & """"""]}}[Content] in Source""
+
+            Workbooks(""{wbkName}"").Connections.Add2 _
+            Name:= ""{ConNamePrefix}"" & TableName, _
+            Description:= ""Connection to the "" & TableName & "" query in the workbook."", _
+            ConnectionString:= ""OLEDB;Provider=Microsoft.Mashup.OleDb.1;Data Source=$Workbook$;Location="" & TableName & "";Extended Properties="", _
+            CommandText:= ""SELECT * FROM ["""" & TableName & """"]"", _
+            lCmdtype:= 2
+    Next
 End Sub
                 ";
                 codeModule.InsertLines(4, VBAcodeText);
