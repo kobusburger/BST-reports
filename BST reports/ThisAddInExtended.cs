@@ -53,7 +53,7 @@ namespace BST_reports
                 PubVer = System.Deployment.Application.ApplicationDeployment.CurrentDeployment.CurrentVersion.ToString();
             }
 
-            Msg = "This BST macro arranges the BST cost report (Project/Reporting/Project Detail Charges) so that it Is easier To manipulate. " + "Select 'Show Cost' and 'Print Descriptions'.\r\nWritten by Kobus Burger 083 228 9674 ©\r\nVersion: " + PubVer;
+            Msg = "This addin Process BST WBS and Analysis reports so that is easier to create pivot tables. \r\nWritten by Kobus Burger 083 228 9674 ©\r\nVersion: " + PubVer;
             MessageBox.Show(Msg, "BST Reports");
         }
         internal void ExMsg(Exception Ex)

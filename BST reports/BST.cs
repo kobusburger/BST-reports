@@ -1,4 +1,5 @@
-﻿using Microsoft.Vbe.Interop;
+﻿using Microsoft.Office.Interop.Excel;
+using Microsoft.Vbe.Interop;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -185,7 +186,7 @@ namespace BST_reports
                 VBComponent newStandardModule;
                 string VBAcodeText;
 
-                foreach (string TableName in TableNamesArray) //Return if query already exists
+/*                foreach (string TableName in TableNamesArray) //Return if query already exists
                 {
                     if (ExistConnection(wbk, ConNamePrefix + TableName))
                     {
@@ -193,7 +194,7 @@ namespace BST_reports
                         return;
                     }
                 }
-
+*/
                 Random RandNo = new Random();
                 MacroName = "Addquery" + RandNo.Next(100000, 1000000); //Randomize the macro name
                 TableNames = "\"" + string.Join("\",\"", TableNamesArray) + "\""; //Create string in VBA expected format
@@ -296,7 +297,6 @@ End Sub
                 }
 
                 //Collect all WBS table names and create queries
-                xlAp.ScreenUpdating = false;
                 foreach (Excel.Worksheet Sheet in XlWb.Worksheets) 
                 {
                     int NoLists = Sheet.ListObjects.Count;
@@ -309,6 +309,8 @@ End Sub
                         }
                     }
                 }
+                if (WBSTables.Count<2) { return; } //Exit sub if there are one or less WBStables
+                xlAp.ScreenUpdating = false;
                 AddQueries(WBSTables.ToArray(), XlWb);
 
                 //todo: Create append query to combined all WBS queries into one
