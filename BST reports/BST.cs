@@ -170,23 +170,7 @@ namespace BST_reports
                 Globals.ThisAddIn.ExMsg(ex);
             }
         }
-        internal static void CombineWBS()
-            //todo: test addquery
-        {
-            Excel.Application xlAp = Globals.ThisAddIn.Application;
-            Excel.Workbook XlWb = xlAp.ActiveWorkbook;
-            if (VBATrusted(XlWb) == false)
-            {
-                MessageBox.Show("No Access to VB Project\n\rPlease allow access in Trusted Sources\n\r" +
-                    "File > Options > Trust Center > Trust Center Settings > Macro Settings > Trust Access to the VBA project object model");
-                return;
-            }
-
-            string[] TableNames = { "WBSTable1", "abcd1" };
-            AddQuery(TableNames, XlWb);
-
-        }
-        internal static void AddQuery(string[] TableNamesArray, Excel.Workbook wbk) //Create queries for each table in TableNamesArray
+        internal static void AddQueries(string[] TableNamesArray, Excel.Workbook wbk) //Create queries for each table in TableNamesArray
         //https://stackoverflow.com/questions/61622872/adding-power-queries-to-excel-using-c-sharp
         //https://docs.microsoft.com/en-us/office/vba/language/reference/visual-basic-add-in-model/objects-visual-basic-add-in-model#vbcomponent
         //https://stackoverflow.com/questions/64210190/how-to-create-queries-and-connections#
@@ -222,30 +206,66 @@ namespace BST_reports
 Sub {MacroName}()
     Dim TableName As Variant
     Dim TableNames() As Variant
-    TableNames = Array({TableNames})
+    Dim result As Variant
+    Dim CombineQueryName As String
+    Dim CombineTableName As String
+    Dim BareTableNames As String
+    CombineQueryName = ""WBSCombineQuery""
+    CombineTableName = ""TAB"" & CombineQueryName
+   TableNames = Array({TableNames})
+    BareTableNames = Join(TableNames, "","")
 
     For Each TableName In TableNames
         On Error Resume Next
-        ActiveWorkbook.Queries.Add _
-            Name:= TableName, _
-            Formula:= ""let Source = Excel.CurrentWorkbook(){{[Name="""""" & TableName & """"""]}}[Content] in Source""
-        If Err.Number = -2147024809 Then
-            MsgBox ""Query "" & TableName & "" already exists. Please delete existing queries""
-            Exit Sub
+        result = Empty
+        result = ActiveWorkbook.Queries(TableName)
+        On Error GoTo 0
+
+        If IsEmpty(result) Then
+            ActiveWorkbook.Queries.Add _
+                Name:= TableName, _
+                 Formula:= ""let Source = Excel.CurrentWorkbook(){{[Name="""""" & TableName & """"""]}}[Content] in Source""
         End If
+    Next
+
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ActiveWorkbook.Queries(CombineQueryName).Delete
+    ActiveWorkbook.Worksheets(CombineQueryName).Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    DeleteList(CombineTableName)
+
+    ActiveWorkbook.Queries.Add Name:= CombineQueryName, Formula:= _
+        ""let"" & vbCrLf & ""    Source = Table.Combine({{"" & BareTableNames & ""}})"" _
+        & vbCrLf & ""in"" & vbCrLf & ""    Source""
+    ActiveWorkbook.Worksheets.Add
+    ActiveSheet.Name = CombineQueryName
+    With ActiveSheet.ListObjects.Add( _
+        SourceType:= 0, _
+        Source:= ""OLEDB;Provider=Microsoft.Mashup.OleDb.1;Data Source=$Workbook$;Location="" & _
+            CombineQueryName & "";Extended Properties="""""""""", _
+        Destination:= Range(""$A$3"")).QueryTable
+        .CommandType = xlCmdSql
+        .CommandText = Array(""SELECT * FROM ["" & CombineQueryName & ""]"")
+        .RowNumbers = False
+        .ListObject.DisplayName = CombineTableName
+        .Refresh BackgroundQuery:= False
+    End With
+
+    End Sub
+
+Sub DeleteList(ListName As String)
+    Dim WS As Worksheet
+    Dim result As Variant
+    For Each WS In ActiveWorkbook.Worksheets
+        On Error Resume Next
+        WS.ListObjects(ListName).Delete
         On Error GoTo 0
     Next
 End Sub
                 ";
 
-/*  The creationg of a connection may not be required. It seems that a query is sufficient
-   Workbooks(""{wbkName}"").Connections.Add2 _
-            Name:= ""{ConNamePrefix}"" & TableName, _
-            Description:= ""Connection to the "" & TableName & "" query in the workbook."", _
-            ConnectionString:= ""OLEDB;Provider=Microsoft.Mashup.OleDb.1;Data Source=$Workbook$;Location="" & TableName & "";Extended Properties="", _
-            CommandText:= ""SELECT * FROM ["""" & TableName & """"]"", _
-            lCmdtype:= 2
-                ";*/
 
                 codeModule.InsertLines(4, VBAcodeText);
                 wbk.Application.Run($@"{newStandardModule.Name}.{MacroName}");
@@ -257,78 +277,60 @@ End Sub
                 Globals.ThisAddIn.ExMsg(ex);
             }
         }
+        internal static void CombineWBS()
+        {
+            try
+            {
+                Excel.Application xlAp = Globals.ThisAddIn.Application;
+                Excel.Workbook XlWb = xlAp.ActiveWorkbook;
+                Excel.Worksheet WBSCombinedSht;
+                Excel.QueryTable QT;
+                List<string> WBSTables = new List<string>();
 
-        /*        internal static void CombineWBS()
+                //VBA project object model needs to be trusted for this to work
+                if (VBATrusted(XlWb) == false) 
                 {
-                    try
+                    MessageBox.Show("No Access to VB Project\n\rPlease allow access in Trusted Sources\n\r" +
+                        "File > Options > Trust Center > Trust Center Settings > Macro Settings > Trust Access to the VBA project object model");
+                    return;
+                }
+
+                //Collect all WBS table names and create queries
+                xlAp.ScreenUpdating = false;
+                foreach (Excel.Worksheet Sheet in XlWb.Worksheets) 
+                {
+                    int NoLists = Sheet.ListObjects.Count;
+                    foreach (Excel.ListObject Table in Sheet.ListObjects)
                     {
-                        Excel.Application xlAp = Globals.ThisAddIn.Application;
-                        Excel.Workbook XlWb = xlAp.ActiveWorkbook;
-                        Excel.Worksheet XlSh;
-                        Excel.QueryTable QT;
-                        long CurrentRow = 0; long LastRow = 0;
-                        string ProjNo = ""; string ProjName = "";
-                        string[] Project; string ProjCellText;
-                        string ConnectionString;
-                        string WBSShtName;
-                        List<string> WBSTables = new List<string>();
-
-                        xlAp.ScreenUpdating = false;
-                        WBSShtName = "WBS Combined";
-                        if (ExistSheet(XlWb, WBSShtName))
+                        string ListName = Table.Name;
+                        if (Table.Name.Substring(0, 6) == "TabWBS")
                         {
-                            xlAp.DisplayAlerts = false;
-                            XlWb.Sheets[WBSShtName].Delete();
-                            xlAp.DisplayAlerts = true;
+                            WBSTables.Add(Table.Name); //Add table to combine
                         }
-                        XlSh = XlWb.Sheets.Add();
-                        XlSh.Name = WBSShtName;
-
-                            int NoShts = XlWb.Worksheets.Count;
-                        foreach (Excel.Worksheet Sheet in XlWb.Worksheets)
-                        {
-                            int NoQ = Sheet.QueryTables.Count;
-                            foreach (Excel.QueryTable Table in Sheet.QueryTables)
-                            {
-                                string QName = Table.Name;
-                                    WBSTables.Add(Table.Name);
-                            }
-                        }
-
-                        int NoCon = XlWb.Connections.Count;
-                        foreach (Excel.WorkbookConnection Con in XlWb.Connections)
-                        {
-                            string ConName = Con.Name;
-                            string Descr = Con.Description;
-                            bool inmodel = Con.InModel;
-                            string connection = Con.OLEDBConnection.Connection;
-                            string file = Con.OLEDBConnection.SourceDataFile;
-                            int range = Con.Ranges.Count;
-
-
-                            WBSTables.Add(Con.Name);
-                        }
-
-                        //Collect all WBS table names
-                        foreach (Excel.Worksheet Sheet in XlWb.Worksheets)
-                        {
-                            int NoLists = Sheet.ListObjects.Count;
-                            foreach (Excel.ListObject Table in Sheet.ListObjects)
-                            {
-                                string ListName = Table.Name;
-                                if (Table.Name.Substring(0, 6) == "TabWBS")
-                                {
-                                    WBSTables.Add(Table.Name); //Add table to combine
-                                }
-                            }
-                        }
-                    xlAp.ScreenUpdating = true;
                     }
-                    catch (Exception ex)
+                }
+                AddQueries(WBSTables.ToArray(), XlWb);
+
+                //todo: Create append query to combined all WBS queries into one
+                int NoShts = XlWb.Worksheets.Count;
+                foreach (Excel.Worksheet Sheet in XlWb.Worksheets)
+                {
+                    int NoQ = Sheet.QueryTables.Count;
+                    foreach (Excel.QueryTable Table in Sheet.QueryTables)
                     {
-                        Globals.ThisAddIn.ExMsg(ex);
+                        string QName = Table.Name;
+                        WBSTables.Add(Table.Name);
                     }
-                }*/
+                }
+
+                //Collect all WBS table names
+                xlAp.ScreenUpdating = true;
+            }
+            catch (Exception ex)
+            {
+                Globals.ThisAddIn.ExMsg(ex);
+            }
+        }
         internal static bool VBATrusted(Excel.Workbook xlWb) //Check if VBA project object model is trusted
         {
             try
@@ -349,44 +351,6 @@ End Sub
                 }
             }
         }
-
-        //From https://stackoverflow.com/questions/61622872/adding-power-queries-to-excel-using-c-sharp
-        /*        public void AddQuery(string m_script_path, string query_name, Excel.Workbook wk)
-                {
-                    VBComponent newStandardModule;
-                    if (wk.VBProject.VBComponents.Count == 0)
-                    {
-                        newStandardModule = wk.VBProject.VBComponents.Add(Microsoft.Vbe.Interop.vbext_ComponentType.vbext_ct_StdModule);
-                    }
-                    else
-                    {
-                        newStandardModule = wk.VBProject.VBComponents.Item(1);
-                    }
-
-                    var codeModule = newStandardModule.CodeModule;
-
-                    // add vba code to module
-                    var lineNum = codeModule.CountOfLines + 1;
-                    var macroName = "addQuery";
-                    var codeText = "Public Sub " + macroName + "()" + "\r\n";
-                    codeText += "M_Script = CreateObject(\"Scripting.FileSystemObject\").OpenTextFile(\"" + m_script_path + "\", 1).ReadAll" + "\r\n";
-                    codeText += "ActiveWorkbook.Queries.Add Name:=\"" + query_name + "\", Formula:=M_Script\r\n";
-                    codeText += "ActiveWorkbook.Connections.Add2 _\r\n";
-                    codeText += "\"Query - test\", _\r\n";
-                    codeText += "\"Connection to the '" + query_name + "' query in the workbook.\", _\r\n";
-                    codeText += "\"OLEDB;Provider=Microsoft.Mashup.OleDb.1;Data Source=$Workbook$;Location=" + query_name + ";Extended Properties=\" _\r\n";
-                    codeText += ", \"\"\"" + query_name + "\"\"\", 6, True, False\r\n";
-
-                    codeText += "End Sub";
-
-                    codeModule.InsertLines(lineNum, codeText);
-
-                    var macro = string.Format("{0}.{1}", newStandardModule.Name, macroName);
-
-                    wk.Application.Run(macro);
-
-                    codeModule.DeleteLines(lineNum, 9);
-                }*/
         internal static long DeleteRows(Excel.Worksheet XlSh, long StartRow, long EndRow)
         {
             long NoOfRows = 0;
