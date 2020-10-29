@@ -5,10 +5,10 @@
       <!--us idQ with custom namespace to make shared tabs work-->
       <tab idQ="KB:KBTab" label="KB">
         <group id="BST" label="BST">
-          <button id="CombineWBS" label="Combine BST WBS reports"
-               screentip="Combine BST WBS report tables already on sheets" onAction="OnCombineWBS"/>
           <button id="MonitorBST" label="Monitor BST"
                screentip="Monitor and import BST Project Analysis and Project WBS reports" onAction="OnMonitorBST"/>
+          <button id="CombineWBS" label="Combine BST WBS reports"
+               screentip="Combine BST WBS report tables already on sheets" onAction="OnCombineWBS"/>
           <button id="AboutButton" label="About"
                screentip="About" onAction="OnAboutButton"/>
         </group>

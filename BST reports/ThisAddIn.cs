@@ -15,7 +15,6 @@ namespace BST_reports
         private void ThisAddIn_Startup(object sender, System.EventArgs e)
         {
         }
-
         private void ThisAddIn_Shutdown(object sender, System.EventArgs e)
         {
         }
@@ -23,9 +22,7 @@ namespace BST_reports
         {
             return new KBRibbon();
         }
-
         #region VSTO generated code
-
         /// <summary>
         /// Required method for Designer support - do not modify
         /// the contents of this method with the code editor.
@@ -34,8 +31,7 @@ namespace BST_reports
         {
             this.Startup += new System.EventHandler(ThisAddIn_Startup);
             this.Shutdown += new System.EventHandler(ThisAddIn_Shutdown);
-        }
-        
+        }      
         #endregion
     }
 }

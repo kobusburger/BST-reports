@@ -12,120 +12,127 @@ namespace BST_reports
 {
     static class BST
     {
-        static string BSTTableName = "BSTData";
-        internal static string BSTPath = "%USERPROFILE%\\AppData\\Local\\BSTEnterprise\\InquiryReports\\Proddbhttpzadc1pbst02.zutari.com";
+        internal static string BSTPath = "%USERPROFILE%\\AppData\\Local\\BSTEnterprise\\InquiryReports"; //\\Proddbhttpzadc1pbst02.zutari.com";
+        internal static Excel.Worksheet ImportReport(string FileName) //Import the report onto a new sheet
+        {
+            Excel.Application xlAp = Globals.ThisAddIn.Application;
+            Excel.Workbook XlWb = xlAp.ActiveWorkbook;
+            Excel.Worksheet XlSh;
+            Excel.QueryTable QT;
+            string ConnectionString;
 
-        internal static void ParseWBS(BSTMonitorForm BSTMonForm)
+            try
+            {
+                //Import BST report
+                xlAp.ScreenUpdating = false;
+                XlSh = XlWb.Sheets.Add();
+                ConnectionString = "FINDER;file:///" + Environment.ExpandEnvironmentVariables(BSTPath + "\\" + FileName);
+                QT = XlSh.QueryTables.Add(Connection: ConnectionString, Destination: XlSh.Range["$A$1"]);
+                QT.WebSelectionType = Excel.XlWebSelectionType.xlEntirePage;
+                QT.Refresh(false);
+                QT.Delete();
+                xlAp.ScreenUpdating = true;
+                return XlSh;
+            }
+            catch (Exception ex)
+            {
+                Globals.ThisAddIn.ExMsg(ex);
+                return null;
+            }
+        }
+        internal static string ParseWBS(Excel.Worksheet XlSh) //return the project number or blank if an error occured
         {
             try
             {
                 Excel.Application xlAp = Globals.ThisAddIn.Application;
                 Excel.Workbook XlWb = xlAp.ActiveWorkbook;
-                Excel.Worksheet XlSh;
-                Excel.QueryTable QT;
-                long CurrentRow = 0; long LastRow = 0;
+                long CurrentRow; long LastRow;
+                long HeadingsRow;
                 string ProjNo = ""; string ProjName = "";
                 string[] Project; string ProjCellText;
-                string ConnectionString;
                 string WBSTableName;
 
- //Import BST report
-                xlAp.ScreenUpdating = false;
-                XlSh = XlWb.Sheets.Add();
-                ConnectionString = "FINDER;file:///" + Environment.ExpandEnvironmentVariables(BSTPath + "\\PrjWbs.htm");
-                QT = XlSh.QueryTables.Add(Connection: ConnectionString, Destination: XlSh.Range["$A$1"]);
-                QT.Refresh(false);
-                QT.Delete();
-
 //Inititalise BST variables
-                LastRow = XlSh.Cells.SpecialCells(Excel.XlCellType.xlCellTypeLastCell).Row;
-                ProjCellText = XlSh.Range["B16"].Text;
+                ProjCellText = XlSh.Range["B25"].Text;
                 char[] delimeter = { '-' }; //I do not know why I had to create a delimeter variable instead of usind {'-'} as the first argument
-                Project = ProjCellText.Split(delimeter , 2);
+                Project = ProjCellText.Split(delimeter, 2);
                 if (Project.Length > 0)
                 {
                     ProjNo = Project[0].Trim();
                     ProjName = Project[1].Trim();
                 }
 
-//allocate table and sheet names
+                //allocate table and sheet names
+                xlAp.ScreenUpdating = false;
                 WBSTableName = "WBS" + ProjNo;
-                int Counter = 0;
-                string PrevWBSTableName = WBSTableName;
-                while (ExistListObject(XlWb, "Tab"+WBSTableName)) //Check if the table name exists
+                if (ExistSheet(XlWb,WBSTableName))
                 {
-                    Counter += 1;
-                    WBSTableName = PrevWBSTableName + "_" + Counter;
+                    xlAp.DisplayAlerts = false;
+                    XlWb.Worksheets[WBSTableName].delete();
+                    xlAp.DisplayAlerts = true;
                 }
                 XlSh.Name = WBSTableName;
 
-//Parse report
-                LastRow -= DeleteRows(XlSh, 20, 21); //Delete rows between headings and first table rows
-                LastRow -= DeleteRows(XlSh, 2, 18); //Delete rows between report name and headings
+                //Parse report
+                HeadingsRow = 27;
+                LastRow = XlSh.UsedRange.Rows.Count;
+                LastRow -= DeleteRows(XlSh, HeadingsRow+1, HeadingsRow + 2); //Delete rows between headings and first table rows
+                LastRow -= DeleteRows(XlSh, 4, HeadingsRow - 1); //Delete rows between report name and headings
+                HeadingsRow = 5;
                 XlSh.Range["A:B"].Insert(); // Insert 2 columns
-                XlSh.Range["2:2"].Insert(); //Insert blank row above headers
-                XlSh.Cells[3,1].Value = "Project";
-                XlSh.Cells[3,2].Value = "name";
+                XlSh.Range[(HeadingsRow - 1) + ":" + (HeadingsRow - 1)].Insert(); //Insert blank row above headers
+                XlSh.Cells[HeadingsRow, 1].Value = "Project";
+                XlSh.Cells[HeadingsRow, 2].Value = "Name";
 
-                CurrentRow = 4; //First table row
-                while (CurrentRow <= LastRow)
+                CurrentRow = HeadingsRow + 1; //First table row
+                while (CurrentRow <= LastRow+1)
                 {
                     if (LastRow % 10 == 0)
                         xlAp.StatusBar = string.Format("Progress: {0:f0}%", CurrentRow * 100 / LastRow);
 
                     // Identify row type
-                    if (XlSh.Cells[CurrentRow, 1].Text.Trim() != "")
+                    string SwitchText = XlSh.Cells[CurrentRow, 3].Text.Trim();
+                    switch (SwitchText)
                     {
-                        XlSh.Cells[CurrentRow, 1].Value = ProjNo;
-                        XlSh.Cells[CurrentRow, 2].Value = ProjName;
-                    }
-                    else if (XlSh.Cells[CurrentRow, 3].Text.Trim() == "" && XlSh.Cells[CurrentRow + 1, 3].Text.Trim() == "Project WBS Report") //Page break
-                    {
-                        DeleteRows(XlSh, CurrentRow, CurrentRow + 8); //Delete rows between pages
-                    }
-                    else if (XlSh.Cells[CurrentRow, 3].Text.Trim() == "" && XlSh.Cells[CurrentRow + 2, 3].Text.Trim() == "Totals") //Report end
-                    {
-                        DeleteRows(XlSh, CurrentRow, CurrentRow + 2); //Delete rows at the end
-                    break;
+                        case "Project WBS Report": //Delete page breaks
+                            LastRow -= DeleteRows(XlSh, CurrentRow - 3, CurrentRow + 6);
+                            CurrentRow -= 4; //3+1 because it is incremented by 1 later
+                            break;
+                        case "END OF REPORT": //DeleteRows report end
+                            LastRow -= DeleteRows(XlSh, CurrentRow - 3, CurrentRow);
+                            CurrentRow -= 3;
+                            break;
+                        default:
+                            XlSh.Cells[CurrentRow, 1].Value = ProjNo;
+                            XlSh.Cells[CurrentRow, 2].Value = ProjName;
+                            break;
                     }
                     CurrentRow += 1;
                 }
-                XlSh.ListObjects.Add(Excel.XlListObjectSourceType.xlSrcRange, XlSh.Cells[3, 1].CurrentRegion,false, 
+                XlSh.ListObjects.Add(Excel.XlListObjectSourceType.xlSrcRange, XlSh.Cells[HeadingsRow, 1].CurrentRegion,false, 
                     Excel.XlYesNoGuess.xlYes).name ="Tab" + WBSTableName;
                 xlAp.StatusBar = false;
                 xlAp.ScreenUpdating = true;
-                BSTMonForm.FileEvents.AppendText(WBSTableName + " added: " + "\r\n");
+                return ProjNo;
             }
             catch (Exception ex)
             {
                 Globals.ThisAddIn.ExMsg(ex);
+                return "";
             }
         }
-        internal static void ParseAnalysis(BSTMonitorForm BSTMonForm)
+        internal static void ParseAnalysis(Excel.Worksheet XlSh)
         {
             try
             {
                 Excel.Application xlAp = Globals.ThisAddIn.Application;
                 Excel.Workbook XlWb = xlAp.ActiveWorkbook;
-                Excel.Worksheet XlSh;
-                Excel.QueryTable QT;
                 long CurrentRow = 0; long LastRow = 0;
-                string ConnectionString;
                 string AnalTableName;
-
-                //Import BST report
-                xlAp.ScreenUpdating = false;
-                XlSh = XlWb.Sheets.Add();
-                ConnectionString = "FINDER;file:///" + Environment.ExpandEnvironmentVariables(BSTPath + "\\PrjAnalysis.htm");
-                QT = XlSh.QueryTables.Add(Connection: ConnectionString, Destination: XlSh.Range["$A$1"]);
-                QT.Refresh(false);
-                QT.Delete();
-
-//                return;
-                //Inititalise BST variables
-                LastRow = XlSh.Cells.SpecialCells(Excel.XlCellType.xlCellTypeLastCell).Row;
+                long HeadingsRow;
 
                 //allocate table and sheet names
+                xlAp.ScreenUpdating = false;
                 AnalTableName = "Analysis";
                 if (ExistSheet(XlWb, AnalTableName))
                 {
@@ -136,35 +143,40 @@ namespace BST_reports
                 XlSh.Name = AnalTableName;
 
                 //Parse report
-                LastRow -= DeleteRows(XlSh, 18, 19); //Delete rows between headings and first table rows
-                LastRow -= DeleteRows(XlSh, 2, 16); //Delete rows between report name and headings
-                XlSh.Range["2:2"].Insert(); //Insert blank row above headers
+                HeadingsRow = 23;
+                LastRow = XlSh.UsedRange.Rows.Count;
+                LastRow -= DeleteRows(XlSh, HeadingsRow + 1, HeadingsRow + 2); //Delete rows between headings and first table rows
+                LastRow -= DeleteRows(XlSh, 4, HeadingsRow - 1); //Delete rows between report name and headings
+                HeadingsRow = 5;
+                XlSh.Range[(HeadingsRow - 1) + ":" + (HeadingsRow - 1)].Insert(); //Insert blank row above headers
 
-                CurrentRow = 4; //First table row
-                while (CurrentRow <= LastRow)
+                CurrentRow = HeadingsRow + 1; //First table row
+                while (CurrentRow <= LastRow+1)
                 {
                     if (LastRow % 10 == 0)
                         xlAp.StatusBar = string.Format("Progress: {0:f0}%", CurrentRow * 100 / LastRow);
 
                     // Identify row type
-                    if (XlSh.Cells[CurrentRow, 1].Text.Trim() != "")
-                    { }
-                    else if (XlSh.Cells[CurrentRow, 1].Text.Trim() == "" && XlSh.Cells[CurrentRow + 1, 1].Text.Trim() == "Project Analysis Report") //Page break
+                    string SwitchText = XlSh.Cells[CurrentRow, 1].Text.Trim();
+                    switch (SwitchText)
                     {
-                        DeleteRows(XlSh, CurrentRow, CurrentRow + 8); //Delete rows between pages
-                    }
-                    else if (XlSh.Cells[CurrentRow, 1].Text.Trim() == "" && XlSh.Cells[CurrentRow + 2, 1].Text.Trim() == "Totals") //Report end
-                    {
-                        DeleteRows(XlSh, CurrentRow, CurrentRow + 4); //Delete rows at the end
-                        break;
+                        case "Project Analysis Report": //Delete page breaks
+                            LastRow -= DeleteRows(XlSh, CurrentRow - 3, CurrentRow + 6);
+                            CurrentRow -= 4; //3+1 because it is incremented by 1 later
+                            break;
+                        case "END OF REPORT": //DeleteRows report end
+                            LastRow -= DeleteRows(XlSh, CurrentRow - 3, CurrentRow);
+                            CurrentRow -= 3;
+                            break;
+                        default:
+                            break;
                     }
                     CurrentRow += 1;
                 }
-                XlSh.ListObjects.Add(Excel.XlListObjectSourceType.xlSrcRange, XlSh.Cells[3, 1].CurrentRegion, false,
+                XlSh.ListObjects.Add(Excel.XlListObjectSourceType.xlSrcRange, XlSh.Cells[HeadingsRow, 1].CurrentRegion, false,
                     Excel.XlYesNoGuess.xlYes).name = "Tab" + AnalTableName;
                 xlAp.StatusBar = false;
                 xlAp.ScreenUpdating = true;
-                BSTMonForm.FileEvents.AppendText(AnalTableName + " added: " + "\r\n");
             }
             catch (Exception ex)
             {
@@ -181,7 +193,6 @@ namespace BST_reports
             {
                 string MacroName ;
                 string wbkName = wbk.Name;
-                string ConNamePrefix = "Query - ";
                 string TableNames;
                 VBComponent newStandardModule;
                 string VBAcodeText;
@@ -284,8 +295,6 @@ End Sub
             {
                 Excel.Application xlAp = Globals.ThisAddIn.Application;
                 Excel.Workbook XlWb = xlAp.ActiveWorkbook;
-                Excel.Worksheet WBSCombinedSht;
-                Excel.QueryTable QT;
                 List<string> WBSTables = new List<string>();
 
                 //VBA project object model needs to be trusted for this to work
@@ -309,24 +318,16 @@ End Sub
                         }
                     }
                 }
-                if (WBSTables.Count<2) { return; } //Exit sub if there are one or less WBStables
+                if (WBSTables.Count<2) //Exit sub if there are one or less WBStables
+                {
+                    MessageBox.Show("Two or more WBS reports are required to create a WBS combined query");
+                    return;
+                } 
                 xlAp.ScreenUpdating = false;
                 AddQueries(WBSTables.ToArray(), XlWb);
 
-                //todo: Create append query to combined all WBS queries into one
-                int NoShts = XlWb.Worksheets.Count;
-                foreach (Excel.Worksheet Sheet in XlWb.Worksheets)
-                {
-                    int NoQ = Sheet.QueryTables.Count;
-                    foreach (Excel.QueryTable Table in Sheet.QueryTables)
-                    {
-                        string QName = Table.Name;
-                        WBSTables.Add(Table.Name);
-                    }
-                }
-
-                //Collect all WBS table names
                 xlAp.ScreenUpdating = true;
+                MessageBox.Show("WBS combined query created");
             }
             catch (Exception ex)
             {

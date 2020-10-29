@@ -53,7 +53,8 @@
             // 
             this.BSTFileWatcher.EnableRaisingEvents = true;
             this.BSTFileWatcher.Filter = "*.htm";
-            this.BSTFileWatcher.NotifyFilter = ((System.IO.NotifyFilters)((System.IO.NotifyFilters.FileName | System.IO.NotifyFilters.Attributes)));
+            this.BSTFileWatcher.IncludeSubdirectories = true;
+            this.BSTFileWatcher.NotifyFilter = System.IO.NotifyFilters.LastWrite;
             this.BSTFileWatcher.SynchronizingObject = this;
             this.BSTFileWatcher.Changed += new System.IO.FileSystemEventHandler(this.BSTFileWatcher_Changed);
             this.BSTFileWatcher.Created += new System.IO.FileSystemEventHandler(this.BSTFileWatcher_Created);

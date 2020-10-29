@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,6 +14,7 @@ namespace BST_reports
 {
     public partial class BSTMonitorForm : Form
     {
+        System.DateTime ImportTime = DateTime.Now; //Used to skip events
         public static int FileEventCounter=0;
         public BSTMonitorForm()
         {
@@ -33,30 +35,44 @@ namespace BST_reports
 
         private void BSTFileWatcher_Changed(object sender, System.IO.FileSystemEventArgs e)
         {
-            ImportReport(e.Name);
+            ProcessReport(e.Name);
         }
 
         private void BSTFileWatcher_Created(object sender, System.IO.FileSystemEventArgs e)
         {
-            ImportReport(e.Name);
+            ProcessReport(e.Name);
         }
-        private void ImportReport(string FileName)
+        private void ProcessReport(string FilePath)
         {
+            Excel.Worksheet whst;
             try
             {
-                switch (FileName)
+                switch (Path.GetFileName(FilePath))
                 {
                     case "PrjWbs.htm":
-                        BST.ParseWBS(this);
+                       if ((DateTime.Now - ImportTime).TotalMilliseconds<2000) //There are two events. Ignore first event
+                       {
 
-                        FileEventCounter += 1;
-                        EventCounter.Text = FileEventCounter.ToString();
+                            whst = BST.ImportReport(FilePath);
+                            string ProjNo = BST.ParseWBS(whst);
+                            if (ProjNo != "")
+                            {
+                                this.FileEvents.AppendText("WBS" + ProjNo + " report added" + "\r\n");
+                            }
+                            FileEventCounter += 1;
+                            EventCounter.Text = FileEventCounter.ToString();
+                       }
+                        ImportTime = DateTime.Now;
                         break;
                     case "PrjAnalysis.htm":
-                        BST.ParseAnalysis(this);
-
-                        FileEventCounter += 1;
-                        EventCounter.Text = FileEventCounter.ToString();
+                        if ((DateTime.Now - ImportTime).TotalMilliseconds < 2000) //There are two events. Ignore first event
+                        {
+                            whst = BST.ImportReport(FilePath);
+                            BST.ParseAnalysis(whst);
+                            this.FileEvents.AppendText("Analysis report added" + "\r\n");
+                            FileEventCounter += 1;
+                            EventCounter.Text = FileEventCounter.ToString();
+                        }
                         break;
                 }
            }

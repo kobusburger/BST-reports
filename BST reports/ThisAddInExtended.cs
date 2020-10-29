@@ -2,19 +2,18 @@
 using System.Collections.Generic;
 using System.Windows.Forms;
 using Excel = Microsoft.Office.Interop.Excel;
+using System.IO;
 
 namespace BST_reports
 {
     public partial class ThisAddIn
     {
-
         internal void MonitorBST()
         {
-            BSTMonitorForm bSTMonitorForm = new BSTMonitorForm();
+            BSTMonitorForm BSTMonitorForm = new BSTMonitorForm();
             Globals.ThisAddIn.LogTrackInfo("MonitorBST");
-            bSTMonitorForm.ShowDialog();
+            BSTMonitorForm.ShowDialog();
         }
-
         readonly Microsoft.ApplicationInsights.TelemetryClient tc = new Microsoft.ApplicationInsights.TelemetryClient();
         internal void LogTrackInfo(string MenuItem) // Use Azure application insights
         {
@@ -43,7 +42,6 @@ namespace BST_reports
             tc.TrackEvent(MenuItem, EventProperties);
             tc.Flush();
         }
-
         internal void AboutBST()
         {
             string Msg, PubVer;
@@ -53,7 +51,7 @@ namespace BST_reports
                 PubVer = System.Deployment.Application.ApplicationDeployment.CurrentDeployment.CurrentVersion.ToString();
             }
 
-            Msg = "This addin Process BST WBS and Analysis reports so that is easier to create pivot tables. \r\nWritten by Kobus Burger 083 228 9674 ©\r\nVersion: " + PubVer;
+            Msg = "This addin parse BST WBS and Analysis reports so that is easier to create pivot tables.\r\nWritten by Kobus Burger 083 228 9674 ©\r\nVersion: " + PubVer;
             MessageBox.Show(Msg, "BST Reports");
         }
         internal void ExMsg(Exception Ex)
@@ -63,12 +61,25 @@ namespace BST_reports
             xlAp.StatusBar = false;
             xlAp.ScreenUpdating = true;
             ErrorDescription = Ex.Source +
-                "\r\n0x"+Ex.HResult.ToString("x")+": "+Ex.Message +
+                "\r\n0x" + Ex.HResult.ToString("x") + ": " + Ex.Message +
                 "\r\n" + Ex.StackTrace +
                 "\r\n" + Ex.TargetSite;
 
             MessageBox.Show(ErrorDescription, "BST Add-In exception (copy text with Ctrl+C)");
         }
-
+        internal static bool IsFileReady(string filename)
+        {
+            // If the file can be opened for exclusive access it means that the file
+            // is no longer locked by another process.
+            try
+            {
+                using (FileStream inputStream = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.None))
+                    return inputStream.Length > 0;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
     }
 }
