@@ -40,7 +40,7 @@ namespace BST_reports
                 return null;
             }
         }
-        internal static string ParseWBS(Excel.Worksheet XlSh) //return the project number or blank if an error occured
+        internal static string ParsePjWBS(Excel.Worksheet XlSh) //return the project number or blank if an error occured
         {
             try
             {
@@ -87,7 +87,7 @@ namespace BST_reports
                 CurrentRow = HeadingsRow + 1; //First table row
                 while (CurrentRow <= LastRow+1)
                 {
-                    if (LastRow % 10 == 0)
+                    if (CurrentRow % 10 == 0)
                         xlAp.StatusBar = string.Format("Progress: {0:f0}%", CurrentRow * 100 / LastRow);
 
                     // Identify row type
@@ -121,19 +121,87 @@ namespace BST_reports
                 return "";
             }
         }
-        internal static void ParseAnalysis(Excel.Worksheet XlSh)
+        internal static string ParseArStatus(Excel.Worksheet XlSh) //return the project number or blank if an error occured
+        {
+            try
+            {
+                Excel.Application xlAp = Globals.ThisAddIn.Application;
+                Excel.Workbook XlWb = xlAp.ActiveWorkbook;
+                long CurrentRow; long LastRow;
+                long HeadingsRow;
+                string ProjNo = ""; string ProjName = "";
+                string ArTableName;
+
+                //Inititalise BST variables
+                ProjNo = XlSh.Range["A44"].Text;
+                ProjName = XlSh.Range["B39"].Text;
+
+                //allocate table and sheet names
+                xlAp.ScreenUpdating = false;
+                ArTableName = "Ar" + ProjNo;
+                if (ExistSheet(XlWb, ArTableName))
+                {
+                    xlAp.DisplayAlerts = false;
+                    XlWb.Worksheets[ArTableName].delete();
+                    xlAp.DisplayAlerts = true;
+                }
+                XlSh.Name = ArTableName;
+
+                //Parse report
+                HeadingsRow = 41;
+                LastRow = XlSh.UsedRange.Rows.Count;
+                LastRow -= DeleteRows(XlSh, HeadingsRow + 1, HeadingsRow + 2); //Delete rows between headings and first table rows
+                LastRow -= DeleteRows(XlSh, 4, HeadingsRow - 1); //Delete rows between report name and headings
+                HeadingsRow = 5;
+                XlSh.Range[(HeadingsRow - 1) + ":" + (HeadingsRow - 1)].Insert(); //Insert blank row above headers
+
+                CurrentRow = HeadingsRow + 1; //First table row
+                while (CurrentRow <= LastRow + 1)
+                {
+                    if (CurrentRow % 10 == 0)
+                        xlAp.StatusBar = string.Format("Progress: {0:f0}%", CurrentRow * 100 / LastRow);
+
+                    // Identify row type
+                    string SwitchText = XlSh.Cells[CurrentRow, 1].Text.Trim();
+                    switch (SwitchText)
+                    {
+                        case "A/R Status Report": //Delete page breaks
+                            LastRow -= DeleteRows(XlSh, CurrentRow - 3, CurrentRow + 6);
+                            CurrentRow -= 4; //3+1 because it is incremented by 1 later
+                            break;
+                        case "END OF REPORT": //DeleteRows report end
+                            LastRow -= DeleteRows(XlSh, CurrentRow - 3, CurrentRow);
+                            CurrentRow -= 3;
+                            break;
+                        default:
+                            break;
+                    }
+                    CurrentRow += 1;
+                }
+                XlSh.ListObjects.Add(Excel.XlListObjectSourceType.xlSrcRange, XlSh.Cells[HeadingsRow, 1].CurrentRegion, false,
+                    Excel.XlYesNoGuess.xlYes).name = "Tab" + ArTableName;
+                xlAp.StatusBar = false;
+                xlAp.ScreenUpdating = true;
+                return ProjNo;
+            }
+            catch (Exception ex)
+            {
+                Globals.ThisAddIn.ExMsg(ex);
+                return "";
+            }
+        }
+        internal static void ParsePjAnalysis(Excel.Worksheet XlSh)
         {
             try
             {
                 Excel.Application xlAp = Globals.ThisAddIn.Application;
                 Excel.Workbook XlWb = xlAp.ActiveWorkbook;
                 long CurrentRow = 0; long LastRow = 0;
-                string AnalTableName;
+                string AnalTableName = "PjAnalysis";
                 long HeadingsRow;
 
                 //allocate table and sheet names
                 xlAp.ScreenUpdating = false;
-                AnalTableName = "Analysis";
                 if (ExistSheet(XlWb, AnalTableName))
                 {
                     xlAp.DisplayAlerts = false;
@@ -153,7 +221,7 @@ namespace BST_reports
                 CurrentRow = HeadingsRow + 1; //First table row
                 while (CurrentRow <= LastRow+1)
                 {
-                    if (LastRow % 10 == 0)
+                    if (CurrentRow % 10 == 0)
                         xlAp.StatusBar = string.Format("Progress: {0:f0}%", CurrentRow * 100 / LastRow);
 
                     // Identify row type
@@ -161,6 +229,68 @@ namespace BST_reports
                     switch (SwitchText)
                     {
                         case "Project Analysis Report": //Delete page breaks
+                            LastRow -= DeleteRows(XlSh, CurrentRow - 3, CurrentRow + 6);
+                            CurrentRow -= 4; //3+1 because it is incremented by 1 later
+                            break;
+                        case "END OF REPORT": //DeleteRows report end
+                            LastRow -= DeleteRows(XlSh, CurrentRow - 3, CurrentRow);
+                            CurrentRow -= 3;
+                            break;
+                        default:
+                            break;
+                    }
+                    CurrentRow += 1;
+                }
+                XlSh.ListObjects.Add(Excel.XlListObjectSourceType.xlSrcRange, XlSh.Cells[HeadingsRow, 1].CurrentRegion, false,
+                    Excel.XlYesNoGuess.xlYes).name = "Tab" + AnalTableName;
+                xlAp.StatusBar = false;
+                xlAp.ScreenUpdating = true;
+            }
+            catch (Exception ex)
+            {
+                Globals.ThisAddIn.ExMsg(ex);
+            }
+        }
+        internal static void ParseArAnalysis(Excel.Worksheet XlSh)
+        {
+            try
+            {
+                Excel.Application xlAp = Globals.ThisAddIn.Application;
+                Excel.Workbook XlWb = xlAp.ActiveWorkbook;
+                long CurrentRow = 0; long LastRow = 0;
+                string AnalTableName;
+                long HeadingsRow;
+
+                //allocate table and sheet names
+                xlAp.ScreenUpdating = false;
+                AnalTableName = "ArAnalysis";
+                if (ExistSheet(XlWb, AnalTableName))
+                {
+                    xlAp.DisplayAlerts = false;
+                    XlWb.Sheets[AnalTableName].Delete();
+                    xlAp.DisplayAlerts = true;
+                }
+                XlSh.Name = AnalTableName;
+
+                //Parse report
+                HeadingsRow = 35;
+                LastRow = XlSh.UsedRange.Rows.Count;
+                LastRow -= DeleteRows(XlSh, HeadingsRow + 1, HeadingsRow + 2); //Delete rows between headings and first table rows
+                LastRow -= DeleteRows(XlSh, 4, HeadingsRow - 1); //Delete rows between report name and headings
+                HeadingsRow = 5;
+                XlSh.Range[(HeadingsRow - 1) + ":" + (HeadingsRow - 1)].Insert(); //Insert blank row above headers
+
+                CurrentRow = HeadingsRow + 1; //First table row
+                while (CurrentRow <= LastRow + 1)
+                {
+                    if (CurrentRow % 10 == 0)
+                        xlAp.StatusBar = string.Format("Progress: {0:f0}%", CurrentRow * 100 / LastRow);
+
+                    // Identify row type
+                    string SwitchText = XlSh.Cells[CurrentRow, 1].Text.Trim();
+                    switch (SwitchText)
+                    {
+                        case "A/R Analysis Report": //Delete page breaks
                             LastRow -= DeleteRows(XlSh, CurrentRow - 3, CurrentRow + 6);
                             CurrentRow -= 4; //3+1 because it is incremented by 1 later
                             break;
@@ -334,6 +464,72 @@ End Sub
                 Globals.ThisAddIn.ExMsg(ex);
             }
         }
+        internal static void AddPMCol() //Add PM columns to PjAnalysis report
+        {
+            try
+            {
+                Excel.Application xlAp = Globals.ThisAddIn.Application;
+                Excel.Workbook XlWb = xlAp.ActiveWorkbook;
+                Excel.ListObject PjAnalysisTable;
+                Excel.ListColumn LCol;
+                string PjAnalTableName = "TabPjAnalysis";
+                string PjAnaShtName;
+                string PMCol1 = "Adjustments";
+                string PMCol2 = "NewBudgert";
+                string PMCol3 = "New % Complete (Get calculation from PM)";
+                string PMCol4 = "New Revenue generated for the Project Lifetime";
+                string PMCol5 = "Revenue for the MONTH (If the TOTAL is a Negative Revenue, a WIP write off form is needed.)";
+                string PMCol6 = "Double check where it states true";
+
+                if ((PjAnaShtName = ExistListObject(PjAnalTableName)) != "")
+                {
+                    PjAnalysisTable = XlWb.Worksheets[PjAnaShtName].ListObjects[PjAnalTableName];
+                    if (!ExistListCol(PjAnalysisTable,PMCol1))
+                        {
+                        LCol = PjAnalysisTable.ListColumns.Add(); //Adjustments
+                        LCol.Name = PMCol1;
+
+                        LCol = PjAnalysisTable.ListColumns.Add(); //New budget
+                        LCol.Name = PMCol2;
+                        LCol.DataBodyRange.Value = "=[@[Tot Bdgt Eff]]+[@[" + PMCol1 + "]]";
+
+                        LCol = PjAnalysisTable.ListColumns.Add(); //New % complete
+                        LCol.Name = PMCol3;
+
+                        LCol = PjAnalysisTable.ListColumns.Add(); //New revenue
+                        LCol.Name = PMCol4;
+                        LCol.DataBodyRange.Value = "=[@[" + PMCol2 + "]]*[@[" + PMCol3 + "]]/100";
+
+                        LCol = PjAnalysisTable.ListColumns.Add(); //Revenue/ month
+                        LCol.Name = PMCol5;
+                        LCol.DataBodyRange.Value = "=[@[" + PMCol4 + "]]-[@Revenue]";
+
+                        LCol = PjAnalysisTable.ListColumns.Add(); //Check
+                        LCol.Name = PMCol6;
+                        LCol.DataBodyRange.Value = "=[@[" + PMCol5 + "]]<-1";
+                        LCol.DataBodyRange.FormatConditions.Add(XlFormatConditionType.xlCellValue, XlFormatConditionOperator.xlEqual, "=TRUE");
+                        LCol.DataBodyRange.FormatConditions[1].Interior.Color = 13551615;
+
+                        PjAnalysisTable.HeaderRowRange.VerticalAlignment = Excel.XlVAlign.xlVAlignCenter;
+                    }
+                    else
+                    {
+                        MessageBox.Show("PM columns are already added");
+                        return;
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("Project analysis table does not exist");
+                    return;
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Globals.ThisAddIn.ExMsg(ex);
+            }
+        }
         internal static bool VBATrusted(Excel.Workbook xlWb) //Check if VBA project object model is trusted
         {
             try
@@ -366,18 +562,35 @@ End Sub
             }
             return NoOfRows;
         }
-        internal static bool ExistListObject(Excel.Workbook XlWb, string ListName)
+        internal static string ExistListObject(string ListName) // Returns sheet name if the list object exist
         {
-            // Returns true if a list object exist in the workbook
+            Excel.Application xlAp = Globals.ThisAddIn.Application;
+            Excel.Workbook XlWb = xlAp.ActiveWorkbook;
+
             foreach (Excel.Worksheet Sheet in XlWb.Worksheets) // Loop through all the worksheets
             {
                 foreach (Excel.ListObject ListObj in Sheet.ListObjects) // Loop through each table in the worksheet
                 {
                     if (ListObj.Name == ListName)
                     {
-                        return true;
+                        return Sheet.Name;
                     }
                 }
+            }
+
+            return "";
+        }
+        internal static bool ExistListCol(Excel.ListObject ListObj, string ColName) // Returns true if column name exists in the listobjet
+        {
+            Excel.Application xlAp = Globals.ThisAddIn.Application;
+            Excel.Workbook XlWb = xlAp.ActiveWorkbook;
+
+            foreach (Excel.ListColumn LCol in ListObj.ListColumns) // Loop through all the columns
+            {
+                     if (LCol.Name == ColName)
+                    {
+                        return true;
+                    }
             }
 
             return false;

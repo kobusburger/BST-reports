@@ -59,6 +59,8 @@ namespace BST_reports
 
         public void OnMonitorBST(Office.IRibbonControl control)
         { Globals.ThisAddIn.MonitorBST(); }
+        public void OnAddPMCol(Office.IRibbonControl control)
+        { BST.AddPMCol(); }
 
         public void OnAboutButton(Office.IRibbonControl control)
         { Globals.ThisAddIn.AboutBST();}

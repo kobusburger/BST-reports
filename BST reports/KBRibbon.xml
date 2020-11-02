@@ -9,6 +9,8 @@
                screentip="Monitor and import BST Project Analysis and Project WBS reports" onAction="OnMonitorBST"/>
           <button id="CombineWBS" label="Combine BST WBS reports"
                screentip="Combine BST WBS report tables already on sheets" onAction="OnCombineWBS"/>
+          <button id="AddPmCol" label="Add PM columns"
+               screentip="Add project manager columns to project analysis report" onAction="OnAddPMCol"/>
           <button id="AboutButton" label="About"
                screentip="About" onAction="OnAboutButton"/>
         </group>

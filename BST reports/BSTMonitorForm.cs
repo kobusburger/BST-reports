@@ -50,32 +50,54 @@ namespace BST_reports
                 switch (Path.GetFileName(FilePath))
                 {
                     case "PrjWbs.htm":
-                       if ((DateTime.Now - ImportTime).TotalMilliseconds<2000) //There are two events. Ignore first event
-                       {
-
+                        if ((DateTime.Now - ImportTime).TotalMilliseconds < 2000) //There are two events. Ignore first event
+                        {
                             whst = BST.ImportReport(FilePath);
-                            string ProjNo = BST.ParseWBS(whst);
+                            string ProjNo = BST.ParsePjWBS(whst);
                             if (ProjNo != "")
                             {
-                                this.FileEvents.AppendText("WBS" + ProjNo + " report added" + "\r\n");
+                                this.FileEvents.AppendText("PjWBS" + ProjNo + " report added" + "\r\n");
                             }
                             FileEventCounter += 1;
                             EventCounter.Text = FileEventCounter.ToString();
-                       }
-                        ImportTime = DateTime.Now;
+                        }
                         break;
                     case "PrjAnalysis.htm":
                         if ((DateTime.Now - ImportTime).TotalMilliseconds < 2000) //There are two events. Ignore first event
                         {
                             whst = BST.ImportReport(FilePath);
-                            BST.ParseAnalysis(whst);
-                            this.FileEvents.AppendText("Analysis report added" + "\r\n");
+                            BST.ParsePjAnalysis(whst);
+                            this.FileEvents.AppendText("PjAnalysis report added" + "\r\n");
+                            FileEventCounter += 1;
+                            EventCounter.Text = FileEventCounter.ToString();
+                        }
+                        break;
+                    case "ArAnalysis.htm":
+                        if ((DateTime.Now - ImportTime).TotalMilliseconds < 2000) //There are two events. Ignore first event
+                        {
+                            whst = BST.ImportReport(FilePath);
+                            BST.ParseArAnalysis(whst);
+                            this.FileEvents.AppendText("ArAnalysis report added" + "\r\n");
+                            FileEventCounter += 1;
+                            EventCounter.Text = FileEventCounter.ToString();
+                        }
+                        break;
+                    case "ArStatus.htm":
+                        if ((DateTime.Now - ImportTime).TotalMilliseconds < 2000) //There are two events. Ignore first event
+                        {
+                            whst = BST.ImportReport(FilePath);
+                            string ProjNo = BST.ParseArStatus(whst);
+                            if (ProjNo != "")
+                            {
+                                this.FileEvents.AppendText("PjStatus" + ProjNo + " report added" + "\r\n");
+                            }
                             FileEventCounter += 1;
                             EventCounter.Text = FileEventCounter.ToString();
                         }
                         break;
                 }
-           }
+                ImportTime = DateTime.Now;
+            }
             catch (Exception ex)
             {
                 Globals.ThisAddIn.ExMsg(ex);
