@@ -19,6 +19,7 @@ namespace BST_reports
             Excel.Workbook XlWb = xlAp.ActiveWorkbook;
             Excel.Worksheet XlSh;
             Excel.QueryTable QT;
+            Excel.Name DefinedName;
             string ConnectionString;
 
             try
@@ -26,6 +27,7 @@ namespace BST_reports
                 //Import BST report
                 xlAp.ScreenUpdating = false;
                 XlSh = XlWb.Sheets.Add();
+                SetShtName(XlSh, "ImportDate", DateTime.Now.ToString("yyyy-MM-dd"));
                 ConnectionString = "FINDER;file:///" + Environment.ExpandEnvironmentVariables(BSTPath + "\\" + FileName);
                 QT = XlSh.QueryTables.Add(Connection: ConnectionString, Destination: XlSh.Range["$A$1"]);
                 QT.WebSelectionType = Excel.XlWebSelectionType.xlEntirePage;
@@ -313,7 +315,7 @@ namespace BST_reports
                 Globals.ThisAddIn.ExMsg(ex);
             }
         }
-        internal static void AddQueries(string[] TableNamesArray, Excel.Workbook wbk) //Create queries for each table in TableNamesArray
+        internal static void AddQueries(string[] TableNamesArray, string CombineQueryName, Excel.Workbook wbk) //Create queries for each table in TableNamesArray
         //https://stackoverflow.com/questions/61622872/adding-power-queries-to-excel-using-c-sharp
         //https://docs.microsoft.com/en-us/office/vba/language/reference/visual-basic-add-in-model/objects-visual-basic-add-in-model#vbcomponent
         //https://stackoverflow.com/questions/64210190/how-to-create-queries-and-connections#
@@ -352,7 +354,7 @@ Sub {MacroName}()
     Dim CombineQueryName As String
     Dim CombineTableName As String
     Dim BareTableNames As String
-    CombineQueryName = ""WBSCombineQuery""
+    CombineQueryName = ""{CombineQueryName}""
     CombineTableName = ""TAB"" & CombineQueryName
    TableNames = Array({TableNames})
     BareTableNames = Join(TableNames, "","")
@@ -454,7 +456,7 @@ End Sub
                     return;
                 } 
                 xlAp.ScreenUpdating = false;
-                AddQueries(WBSTables.ToArray(), XlWb);
+                AddQueries(WBSTables.ToArray(), "WBSCombineQuery", XlWb);
 
                 xlAp.ScreenUpdating = true;
                 MessageBox.Show("WBS combined query created");
@@ -619,5 +621,17 @@ End Sub
             }
             return false;
         }
+        internal static void SetShtName(Excel.Worksheet Sht, string ChkName, string RefersTo)
+        {           
+            foreach(Excel.Name DefName in Sht.Names)
+            {
+                if (DefName.Name == ChkName)
+                {
+                    DefName.RefersTo=RefersTo;
+                    return;
+                }
+           }        
+            Sht.Names.Add(ChkName, RefersTo);
+         }
     }
 }

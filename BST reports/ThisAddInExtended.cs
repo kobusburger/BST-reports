@@ -26,7 +26,7 @@ namespace BST_reports
             var EventProperties = new Dictionary<string, string>();
             xlAp = Globals.ThisAddIn.Application;
             XlWb = xlAp.ActiveWorkbook;
-            EventProperties.Add("FilePath", XlWb.FullName);
+//            EventProperties.Add("FilePath", XlWb.FullName);
             UserName = System.Environment.GetEnvironmentVariable("username");
             PubVer = "";
             if (System.Deployment.Application.ApplicationDeployment.IsNetworkDeployed)
@@ -57,14 +57,10 @@ namespace BST_reports
         internal void ExMsg(Exception Ex)
         {
             Excel.Application xlAp = Globals.ThisAddIn.Application;
-            string ErrorDescription = "";
+            string ErrorDescription;
             xlAp.StatusBar = false;
             xlAp.ScreenUpdating = true;
-            ErrorDescription = Ex.Source +
-                "\r\n0x" + Ex.HResult.ToString("x") + ": " + Ex.Message +
-                "\r\n" + Ex.StackTrace +
-                "\r\n" + Ex.TargetSite;
-
+            ErrorDescription = Ex.Data + "\r\n" + Ex.ToString();
             MessageBox.Show(ErrorDescription, "BST Add-In exception (copy text with Ctrl+C)");
         }
         internal static bool IsFileReady(string filename)
