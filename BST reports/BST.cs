@@ -140,7 +140,7 @@ namespace BST_reports
 
                 //allocate table and sheet names
                 xlAp.ScreenUpdating = false;
-                ArTableName = "Ar" + ProjNo;
+                ArTableName = "ArInv" + ProjNo;
                 if (ExistSheet(XlWb, ArTableName))
                 {
                     xlAp.DisplayAlerts = false;
