@@ -19,14 +19,13 @@ namespace BST_reports
             Excel.Workbook XlWb = xlAp.ActiveWorkbook;
             Excel.Worksheet XlSh;
             Excel.QueryTable QT;
-            Excel.Name DefinedName;
             string ConnectionString;
 
             try
             {
                 //Import BST report
                 xlAp.ScreenUpdating = false;
-                XlSh = XlWb.Sheets.Add();
+                XlSh = XlWb.Sheets.Add(After:XlWb.Worksheets[XlWb.Worksheets.Count]);
                 SetShtName(XlSh, "ImportDate", DateTime.Now.ToString("yyyy-MM-dd"));
                 ConnectionString = "FINDER;file:///" + Environment.ExpandEnvironmentVariables(BSTPath + "\\" + FileName);
                 QT = XlSh.QueryTables.Add(Connection: ConnectionString, Destination: XlSh.Range["$A$1"]);
