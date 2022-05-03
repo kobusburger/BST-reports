@@ -30,6 +30,7 @@ namespace BST_reports
                 ConnectionString = "FINDER;file:///" + Environment.ExpandEnvironmentVariables(BSTPath + "\\" + FileName);
                 QT = XlSh.QueryTables.Add(Connection: ConnectionString, Destination: XlSh.Range["$A$1"]);
                 QT.WebSelectionType = Excel.XlWebSelectionType.xlEntirePage;
+                QT.WebDisableDateRecognition = true;
                 QT.Refresh(false);
                 QT.Delete();
                 xlAp.ScreenUpdating = true;
