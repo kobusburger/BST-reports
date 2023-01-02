@@ -229,6 +229,7 @@
     </Compile>
     <None Include="app.config" />
     <None Include="BST reports_1_TemporaryKey.pfx" />
+    <None Include="BST reports_3_TemporaryKey.pfx" />
     <None Include="BST reports_TemporaryKey.pfx" />
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
@@ -261,10 +262,10 @@
     <SignManifests>true</SignManifests>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestKeyFile>BST reports_1_TemporaryKey.pfx</ManifestKeyFile>
+    <ManifestKeyFile>BST reports_3_TemporaryKey.pfx</ManifestKeyFile>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestCertificateThumbprint>279041DA46F0A08577CCB19D964F23F25A0D59F8</ManifestCertificateThumbprint>
+    <ManifestCertificateThumbprint>668BCB823F79347DA670E7E695B80595D0440FA4</ManifestCertificateThumbprint>
   </PropertyGroup>
   <!-- Include the build rules for a C# project. -->
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

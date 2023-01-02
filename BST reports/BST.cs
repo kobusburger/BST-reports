@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using Excel = Microsoft.Office.Interop.Excel;
 
 namespace BST_reports
@@ -26,7 +27,7 @@ namespace BST_reports
                 //Import BST report
                 xlAp.ScreenUpdating = false;
                 XlSh = XlWb.Sheets.Add(After:XlWb.Worksheets[XlWb.Worksheets.Count]);
-                SetShtName(XlSh, "ImportDate", DateTime.Now.ToString("yyyy-MM-dd"));
+//                SetShtName(XlSh, "ImportDate", DateTime.Now.ToString("yyyy-MM-dd"));
                 ConnectionString = "FINDER;file:///" + Environment.ExpandEnvironmentVariables(BSTPath + "\\" + FileName);
                 QT = XlSh.QueryTables.Add(Connection: ConnectionString, Destination: XlSh.Range["$A$1"]);
                 QT.WebSelectionType = Excel.XlWebSelectionType.xlEntirePage;
@@ -79,10 +80,29 @@ namespace BST_reports
                 HeadingsRow = 27;
                 LastRow = XlSh.UsedRange.Rows.Count;
                 LastRow -= DeleteRows(XlSh, HeadingsRow+1, HeadingsRow + 2); //Delete rows between headings and first table rows
-                LastRow -= DeleteRows(XlSh, 4, HeadingsRow - 1); //Delete rows between report name and headings
-                HeadingsRow = 5;
+                //LastRow -= DeleteRows(XlSh, 4, HeadingsRow - 1); //Delete rows between report name and headings
+                //HeadingsRow = 5;
+
+                XlSh.Range["B5"].TextToColumns(    //Split date
+                    Type.Missing, //Destination
+                    XlTextParsingType.xlDelimited, //DataType
+                    XlTextQualifier.xlTextQualifierDoubleQuote,    //TextQualifier
+                    false,         // Consecutive Delimiter
+                    Type.Missing,  // Tab
+                    Type.Missing,  // Semicolon
+                    false,         // Comma
+                    false,         // Space
+                    true,          // Other
+                    ":",           // Other Char
+                    Type.Missing,  // Field Info
+                    Type.Missing,  // Decimal Separator
+                    Type.Missing,  // Thousands Separator
+                    Type.Missing); // Trailing Minus Numbers
+                SetNameRange(XlWb, "ImportDateWBS"+WBSTableName, XlSh.Range["C5"]);
+                XlSh.Range["C5"].Value=XlSh.Range["C5"].Text.Trim();
+
                 XlSh.Range["A:B"].Insert(); // Insert 2 columns
-                XlSh.Range[(HeadingsRow - 1) + ":" + (HeadingsRow - 1)].Insert(); //Insert blank row above headers
+                XlSh.Range[(HeadingsRow - 1) + ":" + (HeadingsRow - 1)].Clear();
                 XlSh.Cells[HeadingsRow, 1].Value = "Project";
                 XlSh.Cells[HeadingsRow, 2].Value = "Name";
 
@@ -153,10 +173,29 @@ namespace BST_reports
                 HeadingsRow = 41;
                 LastRow = XlSh.UsedRange.Rows.Count;
                 LastRow -= DeleteRows(XlSh, HeadingsRow + 1, HeadingsRow + 2); //Delete rows between headings and first table rows
-                LastRow -= DeleteRows(XlSh, 4, HeadingsRow - 1); //Delete rows between report name and headings
-                HeadingsRow = 5;
-                XlSh.Range[(HeadingsRow - 1) + ":" + (HeadingsRow - 1)].Insert(); //Insert blank row above headers
+                //LastRow -= DeleteRows(XlSh, 4, HeadingsRow - 1); //Delete rows between report name and headings
+                //HeadingsRow = 5;
+                //XlSh.Range[(HeadingsRow - 1) + ":" + (HeadingsRow - 1)].Insert(); //Insert blank row above headers
 
+                XlSh.Range["B5"].TextToColumns(    //Split date
+                    Type.Missing, //Destination
+                    XlTextParsingType.xlDelimited, //DataType
+                    XlTextQualifier.xlTextQualifierDoubleQuote,    //TextQualifier
+                    false,         // Consecutive Delimiter
+                    Type.Missing,  // Tab
+                    Type.Missing,  // Semicolon
+                    false,         // Comma
+                    false,         // Space
+                    true,          // Other
+                    ":",           // Other Char
+                    Type.Missing,  // Field Info
+                    Type.Missing,  // Decimal Separator
+                    Type.Missing,  // Thousands Separator
+                    Type.Missing); // Trailing Minus Numbers
+                SetNameRange(XlWb, "ImportDate"+ArTableName, XlSh.Range["C5"]);
+                XlSh.Range["C5"].Value=XlSh.Range["C5"].Text.Trim();
+
+                XlSh.Range[(HeadingsRow - 1) + ":" + (HeadingsRow - 1)].Clear();
                 CurrentRow = HeadingsRow + 1; //First table row
                 while (CurrentRow <= LastRow + 1)
                 {
@@ -216,10 +255,29 @@ namespace BST_reports
                 HeadingsRow = 23;
                 LastRow = XlSh.UsedRange.Rows.Count;
                 LastRow -= DeleteRows(XlSh, HeadingsRow + 1, HeadingsRow + 2); //Delete rows between headings and first table rows
-                LastRow -= DeleteRows(XlSh, 4, HeadingsRow - 1); //Delete rows between report name and headings
-                HeadingsRow = 5;
-                XlSh.Range[(HeadingsRow - 1) + ":" + (HeadingsRow - 1)].Insert(); //Insert blank row above headers
+                                                                               //LastRow -= DeleteRows(XlSh, 4, HeadingsRow - 1); //Delete rows between report name and headings
+                                                                               //HeadingsRow = 5;
+                                                                               //XlSh.Range[(HeadingsRow - 1) + ":" + (HeadingsRow - 1)].Insert(); //Insert blank row above headers
 
+                XlSh.Range["B5"].TextToColumns(    //Split date
+                    Type.Missing, //Destination
+                    XlTextParsingType.xlDelimited, //DataType
+                    XlTextQualifier.xlTextQualifierDoubleQuote,    //TextQualifier
+                    false,         // Consecutive Delimiter
+                    Type.Missing,  // Tab
+                    Type.Missing,  // Semicolon
+                    false,         // Comma
+                    false,         // Space
+                    true,          // Other
+                    ":",           // Other Char
+                    Type.Missing,  // Field Info
+                    Type.Missing,  // Decimal Separator
+                    Type.Missing,  // Thousands Separator
+                    Type.Missing); // Trailing Minus Numbers
+                SetNameRange(XlWb, "ImportDate"+AnalTableName, XlSh.Range["C5"]);
+                XlSh.Range["C5"].Value=XlSh.Range["C5"].Text.Trim();
+
+                XlSh.Range[(HeadingsRow - 1) + ":" + (HeadingsRow - 1)].Clear();
                 CurrentRow = HeadingsRow + 1; //First table row
                 while (CurrentRow <= LastRow+1)
                 {
@@ -278,10 +336,29 @@ namespace BST_reports
                 HeadingsRow = 35;
                 LastRow = XlSh.UsedRange.Rows.Count;
                 LastRow -= DeleteRows(XlSh, HeadingsRow + 1, HeadingsRow + 2); //Delete rows between headings and first table rows
-                LastRow -= DeleteRows(XlSh, 4, HeadingsRow - 1); //Delete rows between report name and headings
-                HeadingsRow = 5;
-                XlSh.Range[(HeadingsRow - 1) + ":" + (HeadingsRow - 1)].Insert(); //Insert blank row above headers
+                //LastRow -= DeleteRows(XlSh, 4, HeadingsRow - 1); //Delete rows between report name and headings
+                //HeadingsRow = 5;
+                //XlSh.Range[(HeadingsRow - 1) + ":" + (HeadingsRow - 1)].Insert(); //Insert blank row above headers
 
+                XlSh.Range["B5"].TextToColumns(    //Split date
+                    Type.Missing, //Destination
+                    XlTextParsingType.xlDelimited, //DataType
+                    XlTextQualifier.xlTextQualifierDoubleQuote,    //TextQualifier
+                    false,         // Consecutive Delimiter
+                    Type.Missing,  // Tab
+                    Type.Missing,  // Semicolon
+                    false,         // Comma
+                    false,         // Space
+                    true,          // Other
+                    ":",           // Other Char
+                    Type.Missing,  // Field Info
+                    Type.Missing,  // Decimal Separator
+                    Type.Missing,  // Thousands Separator
+                    Type.Missing); // Trailing Minus Numbers
+                SetNameRange(XlWb, "ImportDate"+AnalTableName, XlSh.Range["C5"]);
+                XlSh.Range["C5"].Value=XlSh.Range["C5"].Text.Trim();
+
+                XlSh.Range[(HeadingsRow - 1) + ":" + (HeadingsRow - 1)].Clear();
                 CurrentRow = HeadingsRow + 1; //First table row
                 while (CurrentRow <= LastRow + 1)
                 {
@@ -621,17 +698,16 @@ End Sub
             }
             return false;
         }
-        internal static void SetShtName(Excel.Worksheet Sht, string ChkName, string RefersTo)
+        internal static void SetNameRange(Excel.Workbook Wb, string ChkName, Excel.Range NameRange)
         {           
-            foreach(Excel.Name DefName in Sht.Names)
+            foreach(Excel.Name DefName in Wb.Names)
             {
                 if (DefName.Name == ChkName)
                 {
-                    DefName.RefersTo=RefersTo;
-                    return;
+                   DefName.Delete();
                 }
            }        
-            Sht.Names.Add(ChkName, RefersTo);
+            NameRange.Name=ChkName;
          }
     }
 }
