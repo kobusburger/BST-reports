@@ -392,7 +392,7 @@ namespace BST_reports
                 Globals.ThisAddIn.ExMsg(ex);
             }
         }
-        internal static void AddQueries(string[] TableNamesArray, string CombineQueryName, Excel.Workbook wbk) //Create queries for each table in TableNamesArray
+        internal static void AddQueries( string CombineQueryName, Excel.Workbook wbk) //Create queries for each table in TableNamesArray
         //https://stackoverflow.com/questions/61622872/adding-power-queries-to-excel-using-c-sharp
         //https://docs.microsoft.com/en-us/office/vba/language/reference/visual-basic-add-in-model/objects-visual-basic-add-in-model#vbcomponent
         //https://stackoverflow.com/questions/64210190/how-to-create-queries-and-connections#
@@ -402,22 +402,11 @@ namespace BST_reports
             {
                 string MacroName ;
                 string wbkName = wbk.Name;
-                string TableNames;
                 VBComponent newStandardModule;
                 string VBAcodeText;
 
-/*                foreach (string TableName in TableNamesArray) //Return if query already exists
-                {
-                    if (ExistConnection(wbk, ConNamePrefix + TableName))
-                    {
-                        MessageBox.Show("Connection" + TableName + " already exists. Please delete existing connections");
-                        return;
-                    }
-                }
-*/
                 Random RandNo = new Random();
                 MacroName = "Addquery" + RandNo.Next(100000, 1000000); //Randomize the macro name
-                TableNames = "\"" + string.Join("\",\"", TableNamesArray) + "\""; //Create string in VBA expected format
                 newStandardModule = wbk.VBProject.VBComponents.Add(Microsoft.Vbe.Interop.vbext_ComponentType.vbext_ct_StdModule);
 
                 var codeModule = newStandardModule.CodeModule;
@@ -425,41 +414,37 @@ namespace BST_reports
                 // add vba code to module
                 VBAcodeText = $@"
 Sub {MacroName}()
-    Dim TableName As Variant
-    Dim TableNames() As Variant
     Dim result As Variant
     Dim CombineQueryName As String
-    Dim CombineTableName As String
-    Dim BareTableNames As String
+    Dim CombineQuery As WorkbookQuery
+
     CombineQueryName = ""{CombineQueryName}""
     CombineTableName = ""TAB"" & CombineQueryName
-   TableNames = Array({TableNames})
-    BareTableNames = Join(TableNames, "","")
 
-    For Each TableName In TableNames
-        On Error Resume Next
-        result = Empty
-        result = ActiveWorkbook.Queries(TableName)
-        On Error GoTo 0
-
-        If IsEmpty(result) Then
-            ActiveWorkbook.Queries.Add _
-                Name:= TableName, _
-                 Formula:= ""let Source = Excel.CurrentWorkbook(){{[Name="""""" & TableName & """"""]}}[Content] in Source""
-        End If
-    Next
-
+    If QueryExist(CombineQueryName) Then
+        MsgBox """""""" & CombineQueryName & """""" already exist and will not be created""
+        Exit Sub
+    End If
+        
     On Error Resume Next
     Application.DisplayAlerts = False
-    ActiveWorkbook.Queries(CombineQueryName).Delete
     ActiveWorkbook.Worksheets(CombineQueryName).Delete
     Application.DisplayAlerts = True
     On Error GoTo 0
     DeleteList(CombineTableName)
 
-    ActiveWorkbook.Queries.Add Name:= CombineQueryName, Formula:= _
-        ""let"" & vbCrLf & ""    Source = Table.Combine({{"" & BareTableNames & ""}})"" _
-        & vbCrLf & ""in"" & vbCrLf & ""    Source""
+    set CombineQuery = ActiveWorkbook.Queries.Add (Name:= CombineQueryName, Formula:= _
+        ""let"" & vbCrLf & _
+		""    Source = Excel.CurrentWorkbook(),"" & vbCrLf & _
+		""    WBSTableList = Table.SelectRows(Source, each Text.StartsWith([Name], """"TabWBS"""")),"" & vbCrLf & _
+		""    #""""Expanded Content"""" = Table.ExpandTableColumn(WBSTableList, """"Content"""", {{""""Project"""", """"Name"""", """"Phase"""", """"Task"""", """"Co"""", """"Org""""}}, {{""""Project"""", """"Name.1"""", """"Phase"""", """"Task"""", """"Co"""", """"Org""""}}),"" & vbCrLf & _
+		""    #""""Renamed Columns"""" = Table.RenameColumns(#""""Expanded Content"""",{{{{""""Project"""", """"ProjNo""""}}, {{""""Name.1"""", """"ProjName""""}}}}),"" & vbCrLf & _
+		""    #""""Changed Type"""" = Table.TransformColumnTypes(#""""Renamed Columns"""",{{{{""""ProjNo"""", type text}}, {{""""ProjName"""", type text}}, {{""""Phase"""", type text}}, {{""""Task"""", type text}}, {{""""Co"""", type text}}, {{""""Org"""", type text}}}}),"" & vbCrLf & _
+        ""    #""""Removed Columns"""" = Table.RemoveColumns(#""""Changed Type"""",{{""""Name""""}})"" & vbCrLf & _
+		""in"" & vbCrLf & _
+		""    #""""Removed Columns"""""")
+    CombineQuery.Name = CombineQueryName
+
     ActiveWorkbook.Worksheets.Add
     ActiveSheet.Name = CombineQueryName
     With ActiveSheet.ListObjects.Add( _
@@ -469,13 +454,13 @@ Sub {MacroName}()
         Destination:= Range(""$A$3"")).QueryTable
         .CommandType = xlCmdSql
         .CommandText = Array(""SELECT * FROM ["" & CombineQueryName & ""]"")
-        .RowNumbers = False
+        .BackgroundQuery = True
+        .Refresh BackgroundQuery:=False
         .ListObject.DisplayName = CombineTableName
-        .Refresh BackgroundQuery:= False
-    End With
+        .WorkbookConnection.Name = CombineQueryName
+    End Withx
 
-    End Sub
-
+End Sub
 Sub DeleteList(ListName As String)
     Dim WS As Worksheet
     Dim result As Variant
@@ -485,6 +470,14 @@ Sub DeleteList(ListName As String)
         On Error GoTo 0
     Next
 End Sub
+Function QueryExist(QName As String) As Boolean
+    Dim Query As WorkbookQuery
+    QueryExist = False
+    For Each Query In ActiveWorkbook.Queries
+        If Query.Name = QName Then QueryExist = True
+    Next
+End Function
+
                 ";
 
 
@@ -514,29 +507,11 @@ End Sub
                     return;
                 }
 
-                //Collect all WBS table names and create queries
-                foreach (Excel.Worksheet Sheet in XlWb.Worksheets) 
-                {
-                    int NoLists = Sheet.ListObjects.Count;
-                    foreach (Excel.ListObject Table in Sheet.ListObjects)
-                    {
-                        string ListName = Table.Name;
-                        if (Table.Name.Substring(0, 6) == "TabWBS")
-                        {
-                            WBSTables.Add(Table.Name); //Add table to combine
-                        }
-                    }
-                }
-                if (WBSTables.Count<2) //Exit sub if there are one or less WBStables
-                {
-                    MessageBox.Show("Two or more WBS reports are required to create a WBS combined query");
-                    return;
-                } 
                 xlAp.ScreenUpdating = false;
-                AddQueries(WBSTables.ToArray(), "WBSCombineQuery", XlWb);
+                AddQueries( "WBSCombineQuery", XlWb);
 
                 xlAp.ScreenUpdating = true;
-                MessageBox.Show("WBS combined query created");
+//                MessageBox.Show("WBS combined query created");
             }
             catch (Exception ex)
             {
